@@ -1,0 +1,11 @@
+[tags]
+TODO     = 2.0
+FIXME    = 3.0
+HACK     = 2.5
+PERF     = 2.0
+SECURITY = 4.0
+NOTE     = 1.0
+
+[ignore]
+paths      = ["vendor/", "node_modules/", ".git/", "dist/", "build/"]
+extensions = [".pb.go", ".gen.go", ".min.js", ".lock", ".sum"]

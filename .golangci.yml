@@ -1,0 +1,25 @@
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - revive
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+      - name: var-naming
+      - name: unused-parameter
+
+issues:
+  exclude-rules:
+    # Rollback errors in defer are intentionally unchecked.
+    - text: "errcheck: Error return value of `tx.Rollback` is not checked"
+      linters:
+        - errcheck
