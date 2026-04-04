@@ -107,53 +107,46 @@ func runScan(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("save snapshot: %w", err)
 	}
 
-	scanResult := &models.ScanResult{
-		Snapshot: snap,
-		Delta:    delta,
-	}
-
-	return renderScanResult(cmd, scanResult)
+	return renderScanResult(cmd, &models.ScanResult{Snapshot: snap, Delta: delta})
 }
 
-// computeDelta compares the current snapshot against the previous one.
-// Returns nil if there is no previous snapshot.
 func computeDelta(prev, current *models.Snapshot) *models.Delta {
 	if prev == nil {
 		return nil
 	}
 
-	prevFiles := make(map[string]map[int]bool)
+	prevLines := make(map[string]map[int]bool)
 	for _, item := range prev.Items {
-		if prevFiles[item.File] == nil {
-			prevFiles[item.File] = make(map[int]bool)
+		if prevLines[item.File] == nil {
+			prevLines[item.File] = make(map[int]bool)
 		}
-		prevFiles[item.File][item.Line] = true
+		prevLines[item.File][item.Line] = true
 	}
 
-	currFiles := make(map[string]map[int]bool)
+	currLines := make(map[string]map[int]bool)
 	for _, item := range current.Items {
-		if currFiles[item.File] == nil {
-			currFiles[item.File] = make(map[int]bool)
+		if currLines[item.File] == nil {
+			currLines[item.File] = make(map[int]bool)
 		}
-		currFiles[item.File][item.Line] = true
+		currLines[item.File][item.Line] = true
 	}
 
 	newItems := 0
 	for _, item := range current.Items {
-		if prevFiles[item.File] == nil || !prevFiles[item.File][item.Line] {
+		if prevLines[item.File] == nil || !prevLines[item.File][item.Line] {
 			newItems++
 		}
 	}
 	resolved := 0
 	for _, item := range prev.Items {
-		if currFiles[item.File] == nil || !currFiles[item.File][item.Line] {
+		if currLines[item.File] == nil || !currLines[item.File][item.Line] {
 			resolved++
 		}
 	}
 
 	return &models.Delta{
 		PreviousScore: prev.HealthScore,
-		ScoreDiff:     math.Round(current.HealthScore-prev.HealthScore),
+		ScoreDiff:     math.Round(current.HealthScore - prev.HealthScore),
 		NewItems:      newItems,
 		ResolvedItems: resolved,
 	}
@@ -175,5 +168,4 @@ func renderScanResult(cmd *cobra.Command, result *models.ScanResult) error {
 	return r.Render(os.Stdout, result)
 }
 
-// Ensure database satisfies the io.Closer interface for defer.
 var _ interface{ Close() error } = (*sql.DB)(nil)

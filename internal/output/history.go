@@ -14,10 +14,8 @@ const (
 	barChar     = "█"
 )
 
-// HistoryTableRenderer writes an ASCII bar chart of health scores over time.
 type HistoryTableRenderer struct{}
 
-// RenderHistory writes a bar chart of the health score for each snapshot to w.
 func (r *HistoryTableRenderer) RenderHistory(w io.Writer, snapshots []*models.Snapshot) error {
 	if len(snapshots) == 0 {
 		fmt.Fprintln(w, "No history found for this repository.")
