@@ -1,4 +1,4 @@
-# debt
+# debtCLI
 
 CLI tool that scans a Git repository for technical debt markers, scores them by age and churn, and tracks repo health over time.
 
