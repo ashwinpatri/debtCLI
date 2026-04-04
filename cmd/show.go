@@ -31,7 +31,6 @@ func runShow(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("resolve path: %w", err)
 	}
 
-	// Walk up from the target file to find the repo root (where .debt/ lives).
 	repoRoot, err := findRepoRoot(filepath.Dir(absFile))
 	if err != nil {
 		return fmt.Errorf("find repo root: %w", err)
@@ -83,7 +82,6 @@ func runShow(cmd *cobra.Command, args []string) error {
 	return r.Render(os.Stdout, &models.ScanResult{Snapshot: filteredSnap})
 }
 
-// findRepoRoot walks up from dir until it finds a .debt directory or .git.
 func findRepoRoot(dir string) (string, error) {
 	for {
 		if _, err := os.Stat(filepath.Join(dir, ".debt")); err == nil {
