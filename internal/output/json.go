@@ -8,10 +8,8 @@ import (
 	"github.com/ashwinpatri/debtCLI/internal/models"
 )
 
-// JSONRenderer writes the full ScanResult as indented JSON to w.
 type JSONRenderer struct{}
 
-// Render serialises result to JSON and writes it to w.
 func (r *JSONRenderer) Render(w io.Writer, result *models.ScanResult) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")

@@ -13,11 +13,8 @@ import (
 	"github.com/ashwinpatri/debtCLI/internal/models"
 )
 
-// TableRenderer writes a colorised summary table to the terminal.
 type TableRenderer struct{}
 
-// Render prints the debt items grouped by file, followed by the health score
-// and delta line, to w.
 func (r *TableRenderer) Render(w io.Writer, result *models.ScanResult) error {
 	if len(result.Snapshot.Items) == 0 {
 		fmt.Fprintln(w, "No debt found.")
@@ -64,7 +61,6 @@ func (r *TableRenderer) Render(w io.Writer, result *models.ScanResult) error {
 	return nil
 }
 
-// formatAge returns a human-readable age string for an item's commit date.
 func formatAge(t time.Time) string {
 	if t.IsZero() {
 		return "unknown"
@@ -82,7 +78,6 @@ func formatAge(t time.Time) string {
 	}
 }
 
-// formatHealth renders the health score with colour coding and an optional delta.
 func formatHealth(score float64, delta *models.Delta) string {
 	scoreStr := fmt.Sprintf("%.0f/100", math.Round(score))
 	var colorFn func(string, ...interface{}) string
@@ -109,7 +104,6 @@ func formatHealth(score float64, delta *models.Delta) string {
 	return out
 }
 
-// colorTag returns a colour-coded tag string based on severity.
 func colorTag(tag string) string {
 	switch tag {
 	case "SECURITY":
