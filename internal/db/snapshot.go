@@ -8,9 +8,6 @@ import (
 	"github.com/ashwinpatri/debtCLI/internal/models"
 )
 
-// WriteSnapshot persists a complete snapshot and all its debt items in a
-// single transaction. If anything fails the entire write is rolled back —
-// a half-written snapshot is worse than no snapshot.
 func WriteSnapshot(db *sql.DB, snap *models.Snapshot) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -67,8 +64,6 @@ func WriteSnapshot(db *sql.DB, snap *models.Snapshot) error {
 	return tx.Commit()
 }
 
-// LoadLastSnapshot retrieves the most recent snapshot for repoPath, including
-// all its debt items. Returns nil, nil if no snapshot exists for this repo.
 func LoadLastSnapshot(db *sql.DB, repoPath string) (*models.Snapshot, error) {
 	row := db.QueryRow(
 		`SELECT id, repo_path, timestamp, health_score, item_count
@@ -95,8 +90,6 @@ func LoadLastSnapshot(db *sql.DB, repoPath string) (*models.Snapshot, error) {
 	return snap, nil
 }
 
-// LoadHistory returns all snapshots for repoPath ordered oldest-first,
-// without loading individual debt items (used for the history chart).
 func LoadHistory(db *sql.DB, repoPath string) ([]*models.Snapshot, error) {
 	rows, err := db.Query(
 		`SELECT id, repo_path, timestamp, health_score, item_count
@@ -121,8 +114,7 @@ func LoadHistory(db *sql.DB, repoPath string) ([]*models.Snapshot, error) {
 	return snaps, rows.Err()
 }
 
-// scanSnapshot reads a snapshot row from either a *sql.Row or *sql.Rows.
-// It accepts the common interface to avoid duplicating scan logic.
+// rowScanner lets scanSnapshot work with both *sql.Row and *sql.Rows.
 type rowScanner interface {
 	Scan(dest ...any) error
 }
@@ -141,7 +133,6 @@ func scanSnapshot(r rowScanner) (*models.Snapshot, error) {
 	return &snap, nil
 }
 
-// loadItems fetches all debt items belonging to snapshotID.
 func loadItems(db *sql.DB, snapshotID int64) ([]models.DebtItem, error) {
 	rows, err := db.Query(
 		`SELECT file, line, tag, comment, author, author_email, date, churn, score

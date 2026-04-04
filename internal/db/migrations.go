@@ -5,12 +5,8 @@ import (
 	"fmt"
 )
 
-// migrations is an ordered list of SQL statements that advance the schema
-// one version at a time. Each entry is applied exactly once, identified by
-// its 1-based index as the schema version. Never edit or reorder existing
-// entries — append new ones to evolve the schema.
+// migrations is append-only — never edit or reorder existing entries.
 var migrations = []string{
-	// Version 1: initial schema.
 	`CREATE TABLE IF NOT EXISTS schema_version (
 		version INTEGER NOT NULL
 	);
@@ -41,9 +37,6 @@ var migrations = []string{
 	CREATE INDEX IF NOT EXISTS idx_snapshots_repo ON snapshots(repo_path, timestamp);`,
 }
 
-// migrate applies any migrations that have not yet been run against db.
-// Each migration is wrapped in its own transaction so a partial failure
-// leaves the database at the last successfully applied version.
 func migrate(db *sql.DB) error {
 	current, err := schemaVersion(db)
 	if err != nil {
@@ -58,8 +51,6 @@ func migrate(db *sql.DB) error {
 	return nil
 }
 
-// schemaVersion returns the current schema version stored in the database.
-// It returns 0 if the schema_version table does not exist yet.
 func schemaVersion(db *sql.DB) (int, error) {
 	var count int
 	err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_version'`).Scan(&count)
@@ -78,8 +69,6 @@ func schemaVersion(db *sql.DB) (int, error) {
 	return version, nil
 }
 
-// applyMigration runs a single migration SQL block in a transaction and
-// records the new version in schema_version on success.
 func applyMigration(db *sql.DB, version int, sql string) error {
 	tx, err := db.Begin()
 	if err != nil {
