@@ -6,8 +6,6 @@ import (
 	"context"
 )
 
-// Churn returns the number of commits that have modified filePath by counting
-// the lines emitted by `git log --oneline -- <file>`. Results are cached.
 func (c *realClient) Churn(ctx context.Context, repoPath, filePath string) (int, error) {
 	if entry, ok := c.cache.getChurn(filePath); ok {
 		return entry.result, entry.err
@@ -24,7 +22,6 @@ func (c *realClient) Churn(ctx context.Context, repoPath, filePath string) (int,
 	return count, nil
 }
 
-// countLines returns the number of non-empty lines in data.
 func countLines(data []byte) int {
 	sc := bufio.NewScanner(bytes.NewReader(data))
 	n := 0
