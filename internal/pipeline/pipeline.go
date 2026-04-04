@@ -1,6 +1,3 @@
-// Package pipeline orchestrates the fan-out scan: for each file path received
-// from the walker, it runs the scanner, enriches items with git blame and churn
-// data, scores them, and collects the results.
 package pipeline
 
 import (
@@ -18,27 +15,16 @@ import (
 	"github.com/ashwinpatri/debtCLI/internal/scanner"
 )
 
-// Config parameterises a pipeline run.
 type Config struct {
-	// RepoPath is the root of the git repository, used for blame and churn calls.
 	RepoPath string
-	// Tags maps tag names to their base severity, forwarded to the scorer.
-	Tags map[string]float64
-	// Workers is the number of concurrent file-processing goroutines.
-	// Zero means runtime.NumCPU()*2.
-	Workers int
+	Tags     map[string]float64
+	Workers  int
 }
 
-// Result holds all debt items found across all files in a single run.
 type Result struct {
 	Items []models.DebtItem
 }
 
-// Run fans out file paths from filePaths across Workers goroutines, processes
-// each file through the scanner and git enrichment, and returns the aggregated
-// result. A non-nil error is returned only when the context is cancelled or a
-// bug causes a worker to return an unexpected error — individual file failures
-// are logged and skipped.
 func Run(ctx context.Context, filePaths <-chan string, cfg Config, sc *scanner.Scanner, gc git.Client) (*Result, error) {
 	workers := cfg.Workers
 	if workers <= 0 {
@@ -48,15 +34,12 @@ func Run(ctx context.Context, filePaths <-chan string, cfg Config, sc *scanner.S
 	results := make(chan []models.DebtItem, workers)
 
 	g, ctx := errgroup.WithContext(ctx)
-
 	for i := 0; i < workers; i++ {
 		g.Go(func() error {
 			return processFiles(ctx, filePaths, cfg, sc, gc, results)
 		})
 	}
 
-	// Collect runs concurrently with the workers; it must finish draining
-	// before g.Wait() returns, otherwise workers block on a full results channel.
 	var all []models.DebtItem
 	collectDone := make(chan struct{})
 	go func() {
@@ -66,7 +49,7 @@ func Run(ctx context.Context, filePaths <-chan string, cfg Config, sc *scanner.S
 		}
 	}()
 
-	// Wait for all workers to finish, then close results so the collector exits.
+	// Drain results before calling g.Wait() — workers block if the channel fills.
 	err := g.Wait()
 	close(results)
 	<-collectDone
@@ -77,8 +60,6 @@ func Run(ctx context.Context, filePaths <-chan string, cfg Config, sc *scanner.S
 	return &Result{Items: all}, nil
 }
 
-// processFiles is the worker body: it reads file paths from the channel,
-// processes each one, and sends results downstream.
 func processFiles(ctx context.Context, filePaths <-chan string, cfg Config, sc *scanner.Scanner, gc git.Client, results chan<- []models.DebtItem) error {
 	for {
 		select {
@@ -104,9 +85,6 @@ func processFiles(ctx context.Context, filePaths <-chan string, cfg Config, sc *
 	}
 }
 
-// processFile scans a single file, enriches each item with blame and churn
-// data, and scores it. Blame and churn errors are non-fatal: items are kept
-// with zero/unknown values rather than discarded.
 func processFile(ctx context.Context, path string, cfg Config, sc *scanner.Scanner, gc git.Client) ([]models.DebtItem, error) {
 	items, err := sc.Scan(path)
 	if err != nil {
@@ -139,9 +117,7 @@ func processFile(ctx context.Context, path string, cfg Config, sc *scanner.Scann
 		}
 
 		items[i].Churn = churn
-
-		severity := cfg.Tags[items[i].Tag]
-		items[i].Score = scorer.ScoreItem(items[i], severity)
+		items[i].Score = scorer.ScoreItem(items[i], cfg.Tags[items[i].Tag])
 	}
 
 	return items, nil

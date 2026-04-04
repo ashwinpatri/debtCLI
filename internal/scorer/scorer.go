@@ -1,5 +1,3 @@
-// Package scorer computes per-item debt scores and the aggregate repo health score.
-// All functions are pure — no side effects, no I/O, no shared state.
 package scorer
 
 import (
@@ -9,12 +7,7 @@ import (
 	"github.com/ashwinpatri/debtCLI/internal/models"
 )
 
-// ScoreItem computes a weighted score for a single debt item.
-//
-// score = baseSeverity × ageMult × churnMult
-//
-// ageMult  = 1 + min(ageDays / ageHalfLifeDays, ageMultiplierCap)
-// churnMult = 1 + min(churn  / churnSaturationPoint, churnMultiplierCap)
+// ScoreItem computes: severity × (1 + min(ageDays/180, 2)) × (1 + min(churn/50, 1))
 func ScoreItem(item models.DebtItem, baseSeverity float64) float64 {
 	ageDays := time.Since(item.Date).Hours() / 24
 	ageMult := 1.0 + math.Min(ageDays/ageHalfLifeDays, ageMultiplierCap)
@@ -22,15 +15,11 @@ func ScoreItem(item models.DebtItem, baseSeverity float64) float64 {
 	return baseSeverity * ageMult * churnMult
 }
 
-// RepoHealth converts the sum of all item scores into a 0–100 health score.
-// A score of 100 means no debt. A score of 0 means total debt at or above baseline.
-//
-// health = max(0, 100 − (sum / healthScoreBaseline × 100))
+// RepoHealth computes: max(0, 100 − (sum(scores) / 200 × 100))
 func RepoHealth(items []models.DebtItem) float64 {
 	var total float64
 	for _, item := range items {
 		total += item.Score
 	}
-	health := healthScoreMax - (total/healthScoreBaseline)*healthScoreMax
-	return math.Max(0, health)
+	return math.Max(0, healthScoreMax-(total/healthScoreBaseline)*healthScoreMax)
 }
