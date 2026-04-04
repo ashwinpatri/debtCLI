@@ -1,5 +1,3 @@
-// Package scanner reads source files line by line and identifies technical
-// debt markers based on the tag patterns defined in the config.
 package scanner
 
 import (
@@ -11,15 +9,10 @@ import (
 	"github.com/ashwinpatri/debtCLI/internal/models"
 )
 
-// Scanner holds compiled tag patterns and is safe for concurrent use once
-// constructed. Create one per scan run with New and reuse across goroutines.
 type Scanner struct {
 	patterns []tagPattern
 }
 
-// New compiles the tag patterns from cfg and returns a ready Scanner.
-// Returns an error if any pattern fails to compile, which should not happen
-// in practice since tag names are sanitised with regexp.QuoteMeta.
 func New(cfg *models.Config) (*Scanner, error) {
 	patterns, err := compilePatterns(cfg.Tags)
 	if err != nil {
@@ -28,10 +21,6 @@ func New(cfg *models.Config) (*Scanner, error) {
 	return &Scanner{patterns: patterns}, nil
 }
 
-// Scan reads the file at path and returns one DebtItem per matched line.
-// Only the first matching tag on each line is recorded. The blame fields
-// (Author, AuthorEmail, Date, Churn, Score) are left at their zero values
-// and filled in later by the pipeline.
 func (s *Scanner) Scan(path string) ([]models.DebtItem, error) {
 	f, err := os.Open(path)
 	if err != nil {

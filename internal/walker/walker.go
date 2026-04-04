@@ -1,6 +1,3 @@
-// Package walker traverses a directory tree and emits file paths that are
-// eligible for scanning. It skips binary files, non-UTF-8 files, and any
-// paths or extensions listed in the config ignore lists.
 package walker
 
 import (
@@ -18,17 +15,11 @@ import (
 )
 
 const (
-	// binarySampleSize is the number of bytes read to detect binary files.
 	binarySampleSize = 512
-
-	// chanBuffer controls how many paths can be queued before the walker blocks.
-	// Sized to match the typical worker count so the pipeline stays fed.
+	// chanBuffer keeps the pipeline fed without letting the walker run too far ahead.
 	chanBuffer = 64
 )
 
-// Walk traverses root and sends eligible file paths to the returned channel.
-// The channel is closed when the walk completes or ctx is cancelled.
-// Individual file errors are logged and skipped; they do not abort the walk.
 func Walk(ctx context.Context, root string, cfg *models.Config) (<-chan string, error) {
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
@@ -101,8 +92,6 @@ func Walk(ctx context.Context, root string, cfg *models.Config) (<-chan string, 
 	return paths, nil
 }
 
-// shouldSkipDir returns true if dir matches any of the configured ignore prefixes.
-// The .git directory is always skipped regardless of config.
 func shouldSkipDir(root, dir string, ignorePaths []string) bool {
 	base := filepath.Base(dir)
 	if base == ".git" {
@@ -124,7 +113,6 @@ func shouldSkipDir(root, dir string, ignorePaths []string) bool {
 	return false
 }
 
-// isIgnoredPath checks whether a relative file path falls under any ignored prefix.
 func isIgnoredPath(root, rel string, ignorePaths []string) (bool, error) {
 	for _, p := range ignorePaths {
 		prefix := filepath.ToSlash(strings.TrimSuffix(p, "/"))
@@ -137,7 +125,6 @@ func isIgnoredPath(root, rel string, ignorePaths []string) (bool, error) {
 	return false, nil
 }
 
-// hasIgnoredExtension returns true if path ends with any of the ignored extensions.
 func hasIgnoredExtension(path string, extensions []string) bool {
 	for _, ext := range extensions {
 		if strings.HasSuffix(path, ext) {
@@ -147,9 +134,6 @@ func hasIgnoredExtension(path string, extensions []string) bool {
 	return false
 }
 
-// isReadableText returns true if the file is a non-empty, valid UTF-8 text file.
-// It reads up to binarySampleSize bytes to check for null bytes (binary indicator)
-// and validates that the sample is valid UTF-8.
 func isReadableText(path string) (bool, error) {
 	f, err := os.Open(path)
 	if err != nil {
