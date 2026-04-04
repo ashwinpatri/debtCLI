@@ -1,5 +1,3 @@
-// Package config loads and validates the .debt.toml configuration file.
-// If no config file is found, defaults are used silently.
 package config
 
 import (
@@ -17,7 +15,6 @@ import (
 
 const configFileName = ".debt.toml"
 
-// rawConfig mirrors the TOML structure before validation and merging.
 type rawConfig struct {
 	Tags   map[string]float64 `toml:"tags"`
 	Ignore struct {
@@ -26,9 +23,6 @@ type rawConfig struct {
 	} `toml:"ignore"`
 }
 
-// Load searches for .debt.toml by walking up from repoRoot.
-// If no file is found, defaults are returned. If a file is found but invalid,
-// an error is returned — the caller should treat this as a hard failure.
 func Load(repoRoot string) (*models.Config, error) {
 	path, err := findConfig(repoRoot)
 	if err != nil {
@@ -65,8 +59,6 @@ func Load(repoRoot string) (*models.Config, error) {
 	return cfg, nil
 }
 
-// findConfig walks up the directory tree from start looking for configFileName.
-// It returns fs.ErrNotExist if no file is found before reaching the filesystem root.
 func findConfig(start string) (string, error) {
 	dir := start
 	for {
@@ -83,7 +75,6 @@ func findConfig(start string) (string, error) {
 	}
 }
 
-// validate checks that all config values are within acceptable bounds.
 func validate(cfg *models.Config) error {
 	for tag, severity := range cfg.Tags {
 		if severity <= 0 || severity > 10 {
@@ -103,8 +94,8 @@ func validate(cfg *models.Config) error {
 	return nil
 }
 
-// defaultConfig returns a deep copy of the built-in defaults.
-// Each call returns an independent copy so callers cannot mutate shared state.
+// defaultConfig returns an independent copy of the built-in defaults.
+// Callers can mutate the returned value without affecting the package-level vars.
 func defaultConfig() *models.Config {
 	tags := make(map[string]float64, len(defaultTags))
 	for k, v := range defaultTags {
