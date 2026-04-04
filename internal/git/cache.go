@@ -2,24 +2,19 @@ package git
 
 import "sync"
 
-// blameEntry stores the result of a single git blame call, including any error.
-// Storing the error allows workers to discover cached failures without re-running git.
+// blameEntry caches both the result and any error so workers don't retry failed blame calls.
 type blameEntry struct {
 	result map[int]BlameInfo
 	err    error
 }
 
-// churnEntry stores the result of a single git log churn call.
 type churnEntry struct {
 	result int
 	err    error
 }
 
-// cache holds in-memory results for blame and churn lookups within a single
-// scan run. It is goroutine-safe for concurrent reads and serialised writes.
-//
-// The RWMutex allows many workers to read concurrently without blocking each
-// other; a write lock is only held for the brief moment an entry is inserted.
+// cache is goroutine-safe via RWMutex — concurrent reads don't block each other,
+// only writes do.
 type cache struct {
 	mu    sync.RWMutex
 	blame map[string]blameEntry

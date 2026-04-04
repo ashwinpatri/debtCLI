@@ -10,12 +10,6 @@ import (
 	"strings"
 )
 
-// Blame shells out to `git blame --porcelain -- <file>` and returns a map
-// from 1-based line number to BlameInfo. Results are cached by filePath.
-//
-// The porcelain format emits a 40-character commit hash followed by the
-// original line number, final line number, and group line count on the
-// header line. Author and timestamp fields follow as "key value" pairs.
 func (c *realClient) Blame(ctx context.Context, repoPath, filePath string) (map[int]BlameInfo, error) {
 	if entry, ok := c.cache.getBlame(filePath); ok {
 		return entry.result, entry.err
@@ -32,13 +26,8 @@ func (c *realClient) Blame(ctx context.Context, repoPath, filePath string) (map[
 	return result, err
 }
 
-// parsePorcelain parses the output of `git blame --porcelain`.
-// The format alternates between a header line starting with a 40-char hash
-// and a series of "key value" metadata lines, ending with a tab-prefixed
-// source line. We extract author, author-mail, and author-time per commit hash.
 func parsePorcelain(data []byte) (map[int]BlameInfo, error) {
 	result := make(map[int]BlameInfo)
-	// commitInfo caches blame data for each commit hash seen so far.
 	commitInfo := make(map[string]BlameInfo)
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
@@ -48,10 +37,9 @@ func parsePorcelain(data []byte) (map[int]BlameInfo, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// A porcelain header line starts with a 40-character hex commit hash
-		// followed by a space. Nothing else in the output matches this shape.
+		// Header lines start with a 40-char hex hash followed by a space.
+		// Nothing else in the porcelain output matches this shape.
 		if len(line) > 40 && line[40] == ' ' && isHexHash(line[:40]) {
-			// Header: "<hash> <orig-line> <final-line> [<count>]"
 			fields := strings.Fields(line)
 			if len(fields) < 3 {
 				continue
@@ -66,7 +54,7 @@ func parsePorcelain(data []byte) (map[int]BlameInfo, error) {
 		}
 
 		if strings.HasPrefix(line, "\t") {
-			// Source line — commit block is complete, record the entry.
+			// Tab-prefixed line is the source content — commit block is done.
 			if currentHash != "" && currentLine > 0 {
 				result[currentLine] = commitInfo[currentHash]
 			}
@@ -75,7 +63,6 @@ func parsePorcelain(data []byte) (map[int]BlameInfo, error) {
 			continue
 		}
 
-		// Metadata fields for the current commit hash.
 		key, value, ok := strings.Cut(line, " ")
 		if !ok {
 			continue
@@ -102,7 +89,6 @@ func parsePorcelain(data []byte) (map[int]BlameInfo, error) {
 	return result, nil
 }
 
-// isHexHash returns true if s is exactly 40 lowercase hex characters.
 func isHexHash(s string) bool {
 	if len(s) != 40 {
 		return false
@@ -115,7 +101,6 @@ func isHexHash(s string) bool {
 	return true
 }
 
-// runGit executes git with the supplied arguments in dir and returns stdout.
 func runGit(ctx context.Context, dir string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = dir
